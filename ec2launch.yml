@@ -1,0 +1,11 @@
+Resources: 
+  MyEC2Instance: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: "ami-0d63de463e6604d0a"
+      InstanceType: "t2.micro"
+      KeyName: "madhav_aws"
+      Tags: 
+        - Key: Name
+          Value: MyTestOsByCF
+      

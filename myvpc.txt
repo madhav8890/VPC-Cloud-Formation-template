@@ -1,0 +1,116 @@
+Parameters: 
+  AMI: 
+    Type: String
+    Default: ami-0d63de463e6604d0a
+    Description: AMI id
+  InstenceType: 
+    Type: String
+    Default: t2.micro
+    Description: Instence type
+  KeyPair: 
+    Type: String
+    Default: madhav_aws
+    Description: ssh key
+
+
+
+Resources:
+  myvpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "10.0.0.0/16"
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags: 
+        - Key: Nmae
+          Value: mycfvpc
+
+  myInternetgt:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags: 
+        - Key: Name
+          Value: mycfIgw
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+         Ref: myvpc
+      InternetGatewayId:
+         Ref: myInternetgt
+
+  SubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myvpc
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [ 0, !GetAZs  ]
+      Tags:
+      - Key: Nmae
+        Value: MySubnetA
+
+  myRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:  
+        Ref: myvpc
+      Tags:
+      - Key: Nmae
+        Value: MyRT
+  myRoute:
+    Type: AWS::EC2::Route
+    DependsOn: myInternetgt
+    Properties:
+       RouteTableId:
+         Ref: myRouteTable
+       DestinationCidrBlock: 0.0.0.0/0
+       GatewayId:
+         Ref: myInternetgt
+
+  mySubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: SubnetA
+      RouteTableId:
+        Ref: myRouteTable
+
+  MyEC2Instance: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: !Ref AMI
+      InstanceType: !Ref InstenceType
+      KeyName: !Ref KeyPair
+      SubnetId: !Ref SubnetA
+      SecurityGroups: 
+      - Ref: InstanceSecurityGroup  
+      Tags:
+      - Key: Name
+        Value: MyTestOS
+
+  myEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref MyEC2Instance
+
+InstanceSecurityGroup:
+  Type: AWS::EC2::SecurityGroup
+  Properties:
+    GroupDescription: Allow http to client host
+    VpcId: !Ref myvpc
+    SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+    SecurityGroupEgress:
+      - IpProtocol: -1
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+    Tags:
+      - Key: Name
+        Value: Mysg
